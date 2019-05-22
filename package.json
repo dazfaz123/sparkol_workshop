@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "sls": "serverless",
-    "test": "mocha tests/test_cases --reporter spec",
+    "test": "set TEST_MODE=handler && mocha tests/test_cases --reporter spec",
     "acceptance": "set TEST_MODE=http && mocha tests/test_cases --reporter spec"
   },
   "author": "",
