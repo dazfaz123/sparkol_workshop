@@ -33,8 +33,8 @@ functions:
           - - "https://"
             - Ref: ApiGatewayRestApi
             - ".execute-api.${opt:region}.amazonaws.com/${opt:stage}/restaurants"
-      cognito_user_pool_id: us-east-2_CBLMo4oSE
-      cognito_client_id: 3kt03pov79gef4h8ivuthrg4md
+      cognito_user_pool_id: ${ssm:/${self:service}/${opt:stage}/cognito_user_pool_id}
+      cognito_client_id: ${ssm:/${self:service}/${opt:stage}/cognito_web_client_id}
 
   get-restaurants:
     handler: functions/get-restaurants.handler
@@ -44,7 +44,7 @@ functions:
           method: get
           authorizer: aws_iam
     environment:
-      restaurants_table: restaurants-darren
+      restaurants_table: ${ssm:/${self:service}/${opt:stage}/table_name}
 
   search-restaurants:
     handler: functions/search-restaurants.handler
@@ -53,16 +53,16 @@ functions:
           path: /restaurants/search
           method: post
           authorizer:
-            arn: arn:aws:cognito-idp:us-east-2:965582243733:userpool/us-east-2_CBLMo4oSE
+            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/${ssm:/${self:service}/${opt:stage}/cognito_user_pool_id}
     environment:
-      restaurants_table: restaurants-darren
+      restaurants_table: ${ssm:/${self:service}/${opt:stage}/table_name}
 
 resources:
   Resources:
     restaurantsTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: restaurants-darren
+        TableName: ${ssm:/${self:service}/${opt:stage}/table_name}
         AttributeDefinitions:
           - AttributeName: name
             AttributeType: S
