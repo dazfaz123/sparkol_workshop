@@ -19,6 +19,18 @@ provider:
       Action: execute-api:Invoke
       Resource: arn:aws:execute-api:#{AWS::Region}:#{AWS::AccountId}:*/*/GET/restaurants
 
+    - Effect: Allow
+      Action: kinesis:PutRecord
+      Resource: 
+        Fn::GetAtt:
+          - orderEventsStream
+          - Arn
+
+    - Effect: Allow
+      Action: sns:Publish
+      Resource: 
+        Ref: restaurantNotificationTopic
+
 functions:
   get-index:
     handler: functions/get-index.handler
@@ -33,6 +45,12 @@ functions:
           - - "https://"
             - Ref: ApiGatewayRestApi
             - ".execute-api.${opt:region}.amazonaws.com/${opt:stage}/restaurants"
+      orders_api: 
+        Fn::Join:
+          - ''
+          - - "https://"
+            - Ref: ApiGatewayRestApi
+            - ".execute-api.${opt:region}.amazonaws.com/${opt:stage}/orders"
       cognito_user_pool_id: ${ssm:/${self:service}/${opt:stage}/cognito_user_pool_id}
       cognito_client_id: ${ssm:/${self:service}/${opt:stage}/cognito_web_client_id}
 
@@ -57,6 +75,17 @@ functions:
     environment:
       restaurants_table: ${ssm:/${self:service}/${opt:stage}/table_name}
 
+  place-order:
+    handler: functions/place-order.handler
+    events:
+      - http:
+          path: /orders
+          method: post
+          authorizer:
+            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/${ssm:/workshop-darren/dev/cognito_user_pool_id}
+    environment:
+      order_events_stream: ${ssm:/workshop-darren/dev/stream_name}
+
 resources:
   Resources:
     restaurantsTable:
@@ -72,3 +101,27 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+    orderEventsStream:
+      Type: AWS::Kinesis::Stream
+      Properties: 
+        Name: ${ssm:/workshop-darren/dev/stream_name}
+        ShardCount: 1
+    restaurantNotificationTopic:
+      Type: AWS::SNS::Topic
+      Properties: 
+        DisplayName: ${ssm:/workshop-darren/dev/restaurant_topic_name}
+        TopicName: ${ssm:/workshop-darren/dev/restaurant_topic_name}
+
+notify-restaurant:
+  handler: functions/notify-restaurant.handler
+  events:
+    - stream:
+        type: kinesis
+        arn: 
+          Fn::GetAtt:
+            - orderEventsStream
+            - Arn
+  environment:
+    order_events_stream: ${ssm:/workshop-darren/dev/stream_name}
+    restaurant_notification_topic: 
+      Ref: restaurantNotificationTopic

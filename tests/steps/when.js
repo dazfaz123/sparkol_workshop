@@ -5,6 +5,19 @@ const URL = require('url')
 const http = require('superagent-promise')(require('superagent'), Promise)
 const mode = process.env.TEST_MODE
 
+const viaHandler = async (event, functionName) => {
+  const handler = require(`${APP_ROOT}/functions/${functionName}`).handler
+  console.log(`invoking via handler function ${functionName}`)
+
+  const context = {}
+  const response = await handler(event, context)
+  const contentType = _.get(response, 'headers.content-type', 'application/json');
+  if (response.body && contentType === 'application/json') {
+    response.body = JSON.parse(response.body);
+  }
+  return response
+}
+
 const respondFrom = async (httpRes) => {
   const contentType = _.get(httpRes, 'headers.content-type', 'application/json')
   const body = 
@@ -102,8 +115,28 @@ const we_invoke_search_restaurants = async (user, theme) => {
   return res
 }
 
+const we_invoke_place_order = async (user, restaurantName) => {
+  const body = JSON.stringify({ restaurantName })
+  const requestContext = {
+    authorizer: {
+      claims: {
+        email: `${user.username}@test.com`
+      }
+    }
+  }
+  const auth = user.idToken
+
+  const res = 
+    mode === 'handler'
+      ? await viaHandler({ body, requestContext }, 'place-order')
+      : await viaHttp('orders', 'POST', { body, auth })
+  
+  return res
+}
+
 module.exports = {
   we_invoke_get_index,
   we_invoke_get_restaurants,
-  we_invoke_search_restaurants
+  we_invoke_search_restaurants,
+  we_invoke_place_order
 }

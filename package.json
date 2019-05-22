@@ -5,21 +5,22 @@
   "main": "index.js",
   "scripts": {
     "sls": "serverless",
-    "test": "set TEST_MODE=handler && mocha tests/test_cases --reporter spec",
-    "acceptance": "set TEST_MODE=http && mocha tests/test_cases --reporter spec"
+    "test": "mocha tests/test_cases --reporter spec",
+    "acceptance": "mocha tests/test_cases --reporter spec"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "chai": "^4.2.0",
-    "chance": "^1.0.18",
     "cheerio": "^1.0.0-rc.3",
     "mocha": "^6.1.4",
+    "mock-aws": "^1.2.3",
     "serverless": "^1.43.0",
     "serverless-pseudo-parameters": "^2.4.0"
   },
   "dependencies": {
     "aws-sdk": "^2.459.0",
+    "chance": "^1.0.18",
     "aws4": "^1.8.0",
     "awscred": "^1.4.2",
     "lodash": "^4.17.11",
